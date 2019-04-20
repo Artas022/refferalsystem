@@ -5,19 +5,15 @@
  * Date: 12.04.2019
  * Time: 21:13
  */
-
 namespace app\models;
+use yii\base\Model;
+use yii\BaseYii;
 
-use yii\db\ActiveRecord;
-
-class SignupForm extends ActiveRecord
+class SignupForm extends Model
 {
-
-    // указано название БД
-    public static function tableName()
-    {
-        return 'user';
-    }
+    public $username;
+    public $email;
+    public $password;
 
     public function attributeLabels()
     {
@@ -27,15 +23,18 @@ class SignupForm extends ActiveRecord
             'password' => 'Пароль',
         ];
     }
-
     public function rules()
     {
-        return[
-           [ ['email','password','username'],'required','message' => "Обязательно должно быть заполнено!"],
-           ['email','email', 'message' => "Неправильный формат E-mail!"],
-            ['password','string','min' => 6, 'tooShort' => "Пароль должен быть не менее 6-ти символов!"],
-            ['username', 'unique', 'targetAttribute' =>'username'],
-            ['email', 'unique', 'targetAttribute' =>'email'],
+        return [
+            // Обязательный ввод полей
+            [ ['email','password','username'],'required','message' => "Обязательно должно быть заполнено!"],
+            // Email должен быть формата example@mail.ru
+            ['email','email', 'message' => "Неправильный формат E-mail!"],
+            // Логин и почта должны быть уникальными
+            ['email', 'unique', 'targetAttribute' => 'email', 'targetClass' => '\app\models\User',
+                'message' => 'Email уже занят!'],
+            ['username', 'unique', 'targetAttribute' => 'username', 'targetClass' => '\app\models\User',
+                'message' => 'Ник уже занят!'],
         ];
     }
 }

@@ -23,24 +23,8 @@ $this->title = 'Личный кабинет';
     <tbody>
     <?php
     // получаем всех рефералов пользователя
-    $referals = \app\models\User::find()->select(['username','email'])->
-    join('join','token','user.id = token.ref_id')->
-    where(["user_id" => $user['id']])->
-    all();
-    /*$referals = \app\models\Tokens::find()->select('ref_id')->where(['user_id' => $user['id']])->all();
-    foreach ($referals as $referal) {
-        // Находим id, username, email рефералов
-        $referal = \app\models\User::find()->
-        select(['id', 'username', 'email'])->
-        where(['id' => $referal['ref_id']])->one();
-        echo '
-    <tr>
-        <th scope="row">' . $referal['id'] . '</th>
-        <td>' . $referal['username'] . '</td>
-        <td>' . $referal['email'] . '</td>
-    </tr>';
-    }*/
-foreach ($referals as $referal) {
+foreach ($referals as $referal)
+{
     // Находим id, username, email рефералов
     echo '
 <tr>

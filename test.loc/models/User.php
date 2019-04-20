@@ -2,6 +2,7 @@
 
 namespace app\models;
 
+use yii\BaseYii;
 use yii\db\ActiveRecord;
 use yii\web\IdentityInterface;
 
@@ -10,11 +11,6 @@ class User extends ActiveRecord implements IdentityInterface
     public static function tableName()
     {
         return 'user';
-    }
-    // Создание уникального токена
-    public function setToken()
-    {
-        return $this->token = bin2hex(openssl_random_pseudo_bytes(8));
     }
 
     public static function findIdentity($id)
@@ -51,6 +47,19 @@ class User extends ActiveRecord implements IdentityInterface
 
     public function getTokens()
     {
-        return $this->hasMany(Tokens::className(),['user_id' => 'id']);
+        return $this->hasMany(Tokens::className(),['ref_id' => 'id']);
+    }
+
+    // добавление пользователя в БД
+    public function addUser($model)
+    {
+        $this->username = $model->username;
+        $this->email = $model->email;
+        $this->password = BaseYii::$app->security->generatePasswordHash($model->password);
+        // генерация токена
+        $this->token = bin2hex(openssl_random_pseudo_bytes(8));
+        // вывод сообщения об успешной регистрации
+        BaseYii::$app->session->setFlash('success', "Вы успешно зарегистрировались на сайте!");
+        $this->save();
     }
 }

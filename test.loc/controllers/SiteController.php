@@ -7,25 +7,29 @@ use app\models\User;
 use Yii;
 use yii\filters\AccessControl;
 use yii\web\Controller;
-use yii\web\Response;
 use yii\filters\VerbFilter;
 use app\models\LoginForm;
 use app\models\SignupForm;
 
 class SiteController extends Controller
 {
-
     public function behaviors()
     {
         return [
             'access' => [
                 'class' => AccessControl::className(),
-                'only' => ['logout'],
+                'only' => ['logout','signup'],
                 'rules' => [
                     [
                         'actions' => ['logout'],
                         'allow' => true,
                         'roles' => ['@'],
+                    ],
+
+                    [
+                        'actions' => ['signup'],
+                        'allow' => true,
+                        'roles' => ['?'],
                     ],
                 ],
             ],
@@ -85,42 +89,28 @@ class SiteController extends Controller
     // Регистрация
     public function actionSignup()
     {
+        //if (!Yii::$app->user->isGuest)
+        //    return $this->goHome();
+        // создаём объект формы регистрации
         $model = new SignupForm();
+        // проверка, является ли ссылка реферальной
+        Tokens::checkToken();
+        // берём данные из POST
         if($model->load(Yii::$app->request->post()))
         {
+            // проверяем на валидность
             if($model->validate())
             {
-                // провалидированные данные переписываем в модель User
                 $user = new User();
-                $user->username = $model['username'];
-                $user->password = Yii::$app->security->generatePasswordHash($model->password);
-                $user->email = $model['email'];
-                // Задаём нашему User уникальный токен
-                $user->setToken();
-                if($user->save())
-                {
-                    // После удачного сохранения данных, проверяем,
-                    // был ли пользователь зарегестрирован по реферальной ссылке
-                    if(User::find()->
-                    where(['token' => Yii::$app->request->get('token')])->one())
-                    {
-                        // Если токен существует - связать пользователей
-                        $ref = Tokens::SetValue();
-                        $temp = User::find()->select('id')->
-                        where(['id' => $user['id']])->one();
-                        $ref['ref_id'] = $temp['id'];
-                        $ref->save();
-                    }
-                    Yii::$app->session->setFlash("success",
-                        'Регистрация прошла успешно! Вы были авторизованы в системе сайта.');
-                    Yii::$app->user->login($user);
-                    return $this->goHome();
-                }
-            }else{
-                Yii::$app->session->setFlash("error",'Ошибка отправления данных!');
+                // сохраняем данные в БД
+                $user->addUser($model);
+                // Если токен есть и привязан к существующему пользователю
+                // записать в БД
+                Tokens::setRef($user);
+                return $this->goHome();
             }
         }
-        return $this->render("signup",compact('model'));
+        return $this->render("signup", compact('model'));
     }
 
     // Профиль / Личный кабинет пользователя
@@ -131,9 +121,15 @@ class SiteController extends Controller
             return $this->goHome();
         }
         // найдём пользователя
-        $user = User::find()->asArray()->where(['id'=> Yii::$app->user->getId()])->one();
-        //$user = User::find()->select(['username','email'])->asArray()->where(['id'=> Yii::$app->user->getId()])->with('token','id');
-        return $this->render('profile',compact('user'));
+        $user = User::find()->asArray()->
+        where(['id'=> Yii::$app->user->getId()])->one();
+
+        $referals = User::find()->select(['username','email'])->
+        joinWith('tokens')->
+        where(["user_id" => $user['id']])->
+        all();
+
+        return $this->render('profile',compact('user','referals'));
     }
 
 }
